@@ -35,7 +35,7 @@ pytest==8.3.2
 pytest-asyncio==0.24.0
 
 # ── Optional: FastAPI backend (uncomment if building REST API) ─
-# fastapi==0.115.0
+fastapi==0.115.0
 uvicorn[standard]==0.32.0
 websockets==13.1
 
