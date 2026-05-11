@@ -16,7 +16,7 @@ export function Home() {
   const [status, setStatus] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [report, setReport] = useState<ResearchResponse | null>(null);
-  const [history, setHistory] = useLocalStorage<HistoryItem[]>('research_history', []);
+  const [, setHistory] = useLocalStorage<HistoryItem[]>('research_history', []);
   const [iteration, setIteration] = useState(0);
   const statusRef = useRef(status); // ref to avoid stale closure in async callbacks
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
