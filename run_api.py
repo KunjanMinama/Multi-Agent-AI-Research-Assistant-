@@ -156,5 +156,6 @@ async def agent_json():
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting REST API Server on http://0.0.0.0:8000")
-    uvicorn.run("run_api:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    logger.info(f"Starting REST API Server on http://0.0.0.0:{port}")
+    uvicorn.run("run_api:app", host="0.0.0.0", port=port, reload=False)
