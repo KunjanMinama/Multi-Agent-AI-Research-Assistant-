@@ -6,7 +6,7 @@
 # ============================================================
 
 # ── LangGraph Orchestration ───────────────────────────────────
-langgraph==0.2.14
+langgraph==0.2.44
 langchain-core==0.3.15
 langchain-community==0.3.7
 
