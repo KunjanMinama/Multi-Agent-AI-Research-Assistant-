@@ -34,10 +34,14 @@ python-dotenv==1.0.1
 pytest==8.3.2
 pytest-asyncio==0.24.0
 
-# ── Optional: FastAPI backend (uncomment if building REST API) ─
+# ── FastAPI Backend ────────────────────────────────────────────
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 websockets==13.1
+python-multipart==0.0.12   # Required for file uploads
+
+# ── MCP (Model Context Protocol) ──────────────────────────────
+mcp>=1.0.0
 
 # ── Optional: Visualization (uncomment for chart generation) ──
 matplotlib==3.9.2
