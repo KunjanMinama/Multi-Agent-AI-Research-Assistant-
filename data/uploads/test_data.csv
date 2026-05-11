@@ -1,0 +1,13 @@
+month,sales,profit,region,units
+Jan,10000,2000,North,500
+Feb,12000,2400,North,600
+Mar,15000,3000,South,750
+Apr,13000,2600,South,650
+May,18000,3600,East,900
+Jun,20000,4000,East,1000
+Jul,22000,4400,West,1100
+Aug,19000,3800,West,950
+Sep,21000,4200,North,1050
+Oct,25000,5000,North,1250
+Nov,28000,5600,South,1400
+Dec,30000,6000,East,1500

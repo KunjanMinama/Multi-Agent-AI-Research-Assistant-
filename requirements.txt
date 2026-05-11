@@ -1,0 +1,44 @@
+# ============================================================
+# MULTI-AGENT AI RESEARCH SYSTEM — Dependencies
+# ============================================================
+# Install with: pip install -r requirements.txt
+# Python: 3.9+
+# ============================================================
+
+# ── LangGraph Orchestration ───────────────────────────────────
+langgraph==0.2.14
+langchain-core==0.3.15
+langchain-community==0.3.7
+
+# ── LLM Backend ───────────────────────────────────────────────
+# Groq: Free API, ultra-fast inference (Llama 3 / Mixtral)
+langchain-groq==0.2.1
+groq==0.12.0
+
+# ── Web Search ────────────────────────────────────────────────
+# DuckDuckGo: No API key required, free, no rate limits
+duckduckgo-search==6.3.7
+
+# ── Data Analysis ─────────────────────────────────────────────
+pandas==2.2.3
+numpy==1.26.4
+openpyxl==3.1.5        # Excel (.xlsx) file support
+
+# ── Logging ───────────────────────────────────────────────────
+loguru==0.7.2
+
+# ── Environment Management ────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Testing ───────────────────────────────────────────────────
+pytest==8.3.2
+pytest-asyncio==0.24.0
+
+# ── Optional: FastAPI backend (uncomment if building REST API) ─
+# fastapi==0.115.0
+# uvicorn[standard]==0.32.0
+# websockets==13.1
+
+# ── Optional: Visualization (uncomment for chart generation) ──
+# matplotlib==3.9.2
+# plotly==5.24.1
