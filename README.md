@@ -163,3 +163,16 @@ pytest tests/ -v -m integration
 ## 📄 License
 
 This project is licensed under the MIT License — free for personal, educational, and commercial use.
+
+## 👨‍💻 Author
+
+**Kunjan Minama**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/kunjan-minama-1b023b342/)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-black?style=flat&logo=github)](https://github.com/KunjanMinama)
+
+---
+
+<div align="center">
+⭐ Star this repo if you found it helpful!
+</div>
