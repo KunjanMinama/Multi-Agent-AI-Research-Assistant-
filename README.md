@@ -20,7 +20,7 @@
 
 This project is a production-grade **Multi-Agent Architecture** built with LangGraph and LLaMA 3. Unlike a standard ChatGPT prompt, this system automatically spins up a team of specialized AI agents that collaborate to solve your query. They browse the internet in real-time, analyze CSV/Excel files using pandas, synthesize findings, logically verify the facts, and output a professional markdown report.
 
-⚠️ **Note:** The backend is hosted on a free Railway tier and may take 30-60 seconds to wake up if it has been idle.
+⚠️ **Note:** The backend is hosted on a free Railway tier and may take 30-60 seconds to wake up if it has been idle.And currently adding new features so that we can also upload pdf files.
 
 ---
 
