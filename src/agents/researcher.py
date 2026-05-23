@@ -25,7 +25,7 @@ except ImportError:
     DDGS = None  # type: ignore[assignment]
 
 from .base_v2 import BaseAgent
-from src.mcp_client.tool_client import get_web_search_client
+
 
 class ResearcherAgent(BaseAgent):
     """
@@ -90,10 +90,16 @@ Quality standards:
         # ── Step 2: Execute searches ──────────────────────────────────────────
         all_results = []
         seen_urls = set()
+        import time as _time
+        import random
 
         for i, sq in enumerate(search_queries, 1):
+            # Add delay between queries to avoid DuckDuckGo rate limiting
+            if i > 1:
+                _time.sleep(4)
+
             logger.info(f"[Researcher] Searching ({i}/{len(search_queries)}): '{sq}'")
-            results = self._search(sq, max_results=8)
+            results = self._search(sq, max_results=5)
 
             # Deduplicate by URL
             for r in results:
@@ -157,22 +163,21 @@ Be factual and cite sources using [Title](URL) format."""
 
     def _generate_search_queries(self, query: str) -> List[str]:
         """
-        Generate 3-5 diverse search queries from the main query.
+        Generate 3 diverse search queries from the main query.
 
         Using an LLM here gives much better sub-queries than simple string manipulation.
         Falls back to rule-based queries if LLM fails.
         """
-        prompt = f"""Generate exactly 4 diverse search queries to research: "{query}"
+        prompt = f"""Generate exactly 3 diverse search queries to research: "{query}"
 
 Rules:
-- Each query from a DIFFERENT angle (overview, recent news, statistics, expert opinions)
+- Each query from a DIFFERENT angle (overview, recent news, expert opinions)
 - Keep each query under 8 words
 - Format: Return ONLY the queries, one per line, no numbers or bullets
 
 Example output:
 AI trends in healthcare 2024
 latest artificial intelligence medical breakthroughs
-AI diagnostics clinical trial statistics
 experts opinion AI replacing doctors"""
 
         try:
@@ -180,7 +185,7 @@ experts opinion AI replacing doctors"""
             # Parse queries — one per non-empty line
             raw_queries = [line.strip() for line in response.strip().split("\n") if line.strip()]
             # Filter out any accidental headers/labels
-            queries = [q for q in raw_queries if not q.endswith(":") and len(q) > 3][:5]
+            queries = [q for q in raw_queries if not q.endswith(":") and len(q) > 3][:3]
 
             if len(queries) >= 2:
                 logger.debug(f"[Researcher] Sub-queries: {queries}")
@@ -191,43 +196,42 @@ experts opinion AI replacing doctors"""
         # Rule-based fallback queries
         return [
             query,
-            f"{query} latest 2024",
-            f"{query} overview statistics",
+            f"{query} latest news",
             f"{query} trends analysis",
         ]
 
-    def _search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+    def _search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """
-        Execute a web search using the MCP Web Search Server.
+        Execute a web search using DuckDuckGo directly.
+
+        Uses fresh DDGS context manager per attempt and random jitter
+        to avoid rate limiting (recommended by library maintainer).
         """
-        try:
-            client = get_web_search_client()
-            
-            # MCP call_tool returns a list of TextContent or ImageContent.
-            # We parse the text content which should be a JSON string or dict.
-            result_content = client.call_tool("search_web", {"query": query, "max_results": max_results})
-            
-            import json
-            # Extract text from MCP TextContent
-            if result_content and len(result_content) > 0:
-                text_result = result_content[0].text
-                # FastMCP serializes outputs to JSON strings automatically.
-                if isinstance(text_result, str):
-                    try:
-                        results_list = json.loads(text_result)
-                    except json.JSONDecodeError:
-                        logger.warning(f"[Researcher] Failed to parse JSON: {text_result[:100]}")
-                        return []
-                else:
-                    results_list = text_result
-                    
-                logger.debug(f"[Researcher] MCP Search '{query}' → {len(results_list)} results")
-                return results_list
+        if DDGS is None:
+            logger.warning("[Researcher] duckduckgo_search not installed — skipping search")
             return []
 
-        except Exception as e:
-            logger.warning(f"[Researcher] MCP Search failed for '{query}': {e}")
-            return []
+        import time as _time
+        import random
+
+        for attempt in range(1, 4):  # 3 attempts
+            try:
+                # Fresh context manager per attempt — rate-limited instances cache errors
+                with DDGS() as searcher:
+                    results = searcher.text(query, max_results=max_results)
+                    results_list = list(results) if results else []
+                logger.info(f"[Researcher] Search '{query}' → {len(results_list)} results")
+                return results_list
+            except Exception as e:
+                wait = random.uniform(5, 10) * attempt  # Random backoff: ~5-10s, ~10-20s, ~15-30s
+                logger.warning(
+                    f"[Researcher] Search failed for '{query}' (attempt {attempt}/3): {e}"
+                    f" | retrying in {wait:.0f}s..."
+                )
+                if attempt < 3:
+                    _time.sleep(wait)
+
+        return []
 
     def _format_results_for_llm(self, results: List[Dict[str, Any]]) -> str:
         """
@@ -287,4 +291,4 @@ if __name__ == "__main__":
 
     stats = agent.get_stats()
     print(f"\nAgent Stats: {stats}")
-    print("\n✅ Researcher Agent works!")
+    print("\n[OK] Researcher Agent works!")
