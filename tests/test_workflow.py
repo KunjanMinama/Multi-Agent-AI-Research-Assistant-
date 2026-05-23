@@ -700,6 +700,121 @@ class TestIntegration:
         assert len(result["errors"]) > 0
 
 
+class TestMultiDocumentAnalysis:
+    """Tests for PDF, Word, JSON, and Text document parsing and analysis routing."""
+
+    def test_file_server_pdf_parsing(self, tmp_path):
+        """File server successfully reads a PDF file (mocked pypdf)."""
+        from src.mcp_servers.file_server import read_file
+        
+        pdf_file = tmp_path / "document.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4 mock pdf content")
+        
+        class MockPage:
+            def extract_text(self):
+                return "This is page content of the PDF."
+                
+        class MockPdfReader:
+            def __init__(self, stream):
+                self.pages = [MockPage(), MockPage()]
+                
+        with patch("pypdf.PdfReader", side_effect=MockPdfReader):
+            content = read_file(str(pdf_file))
+            
+        assert "--- Page 1 ---" in content
+        assert "--- Page 2 ---" in content
+        assert "This is page content of the PDF." in content
+
+    def test_file_server_docx_parsing(self, tmp_path):
+        """File server successfully reads a Docx file (mocked docx)."""
+        from src.mcp_servers.file_server import read_file
+        
+        docx_file = tmp_path / "document.docx"
+        docx_file.write_bytes(b"mock docx content")
+        
+        class MockParagraph:
+            def __init__(self, text):
+                self.text = text
+                
+        class MockCell:
+            def __init__(self, text):
+                self.text = text
+                
+        class MockRow:
+            def __init__(self, cells):
+                self.cells = cells
+                
+        class MockTable:
+            def __init__(self):
+                self.rows = [MockRow([MockCell("Header1"), MockCell("Header2")]), MockRow([MockCell("Val1"), MockCell("Val2")])]
+                
+        class MockDocument:
+            def __init__(self, path):
+                self.paragraphs = [MockParagraph("Heading"), MockParagraph("Paragraph text.")]
+                self.tables = [MockTable()]
+                
+        with patch("docx.Document", side_effect=MockDocument):
+            content = read_file(str(docx_file))
+            
+        assert "Heading" in content
+        assert "Paragraph text." in content
+        assert "--- Tables in Document ---" in content
+        assert "Header1 | Header2" in content
+        assert "Val1 | Val2" in content
+
+    def test_file_server_json_parsing(self, tmp_path):
+        """File server successfully reads and formats a JSON file."""
+        from src.mcp_servers.file_server import read_file
+        import json
+        
+        json_file = tmp_path / "data.json"
+        data = {"name": "Test document", "score": 9.5, "tags": ["AI", "Agents"]}
+        with open(json_file, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+            
+        content = read_file(str(json_file))
+        assert '"name": "Test document"' in content
+        assert '"score": 9.5' in content
+        assert '"tags": [' in content
+
+    def test_data_analyst_routes_pdf(self, tmp_path):
+        """DataAnalyst successfully reads a PDF via the File Server MCP and analyzes it with the LLM."""
+        from src.agents.data_analyst import DataAnalystAgent
+        
+        agent = DataAnalystAgent()
+        agent.llm = MagicMock()
+        
+        mock_response = MagicMock()
+        mock_response.content = "This document is a comprehensive AI report summarizing agents."
+        agent.llm.invoke = MagicMock(return_value=mock_response)
+        
+        pdf_path = tmp_path / "report.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4")
+        
+        state = create_initial_state(
+            query="Summarize this report",
+            data_path=str(pdf_path)
+        )
+        
+        class MockTextContent:
+            def __init__(self, text):
+                self.text = text
+                
+        with patch("src.agents.data_analyst.get_file_client") as mock_client_factory:
+            mock_client = MagicMock()
+            mock_client_factory.return_value = mock_client
+            mock_client.call_tool.return_value = [MockTextContent("--- Page 1 ---\nThis is the AI agent report content.")]
+            
+            result = agent.execute(state)
+            
+        assert result["data_summary"] is not None
+        assert result["data_summary"]["file_type"] == ".pdf"
+        assert result["data_summary"]["char_count"] > 0
+        assert "AI agent report" in result["data_summary"]["preview"]
+        assert result["analysis_insights"] == "This document is a comprehensive AI report summarizing agents."
+        assert result["next_agent"] == "synthesizer"
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

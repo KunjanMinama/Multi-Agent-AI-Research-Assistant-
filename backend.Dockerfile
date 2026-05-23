@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the API server
-CMD ["python", "run_api.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

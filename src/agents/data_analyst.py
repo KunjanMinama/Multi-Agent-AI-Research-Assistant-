@@ -22,7 +22,7 @@ import numpy as np
 from loguru import logger
 
 from .base_v2 import BaseAgent
-from src.mcp_client.tool_client import get_data_analysis_client
+from src.mcp_client.tool_client import get_data_analysis_client, get_file_client
 
 class DataAnalystAgent(BaseAgent):
     """
@@ -60,6 +60,7 @@ Standards:
     def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Load data file and generate comprehensive analysis via MCP.
+        Supports both tabular data (CSV/Excel) and text documents (PDF/Word/JSON/TXT/MD).
         """
         logger.info("[DataAnalyst] Starting data analysis via MCP")
 
@@ -84,7 +85,17 @@ Standards:
             state["iterations"] += 1
             return state
 
-        # ── Step 1 & 2: Analyze via MCP ───────────────────────────────────────
+        ext = os.path.splitext(data_path)[1].lower()
+
+        # ── Route based on file type ─────────────────────────────────────────
+        if ext in (".pdf", ".docx", ".json", ".txt", ".md"):
+            return self._execute_document_analysis(state, data_path, ext)
+        else:
+            return self._execute_tabular_analysis(state, data_path)
+
+    def _execute_tabular_analysis(self, state: Dict[str, Any], data_path: str) -> Dict[str, Any]:
+        """Existing pandas analysis flow for tabular datasets."""
+        query = state["query"]
         summary = self._analyze_via_mcp(data_path)
         if summary is None:
             state["errors"].append(f"DataAnalyst: MCP analysis failed for {data_path}")
@@ -95,7 +106,7 @@ Standards:
         state["data_summary"] = summary
         logger.info("[DataAnalyst] MCP Structural summary computed")
 
-        # ── Step 3: LLM analysis ──────────────────────────────────────────────
+        # LLM analysis
         analysis_prompt = self._build_analysis_prompt(query, summary)
 
         try:
@@ -107,12 +118,91 @@ Standards:
             # Fallback: use the structural summary as insights
             insights = self._summary_to_text(summary)
 
-        # ── Step 4: Update state ──────────────────────────────────────────────
+        # Update state
         state["analysis_insights"] = insights
         state["next_agent"] = "synthesizer"
         state["iterations"] += 1
 
-        logger.info("[DataAnalyst] Done → routing to synthesizer")
+        logger.info("[DataAnalyst] Tabular analysis done → routing to synthesizer")
+        return state
+
+    def _execute_document_analysis(self, state: Dict[str, Any], data_path: str, ext: str) -> Dict[str, Any]:
+        """New document analysis flow for PDF, Word, JSON, and Text files."""
+        query = state["query"]
+        logger.info(f"[DataAnalyst] Starting document analysis via MCP File Server for {ext}")
+        
+        try:
+            client = get_file_client()
+            abs_path = os.path.abspath(data_path)
+            result_content = client.call_tool("read_file", {"file_path": abs_path})
+            
+            if result_content and len(result_content) > 0:
+                text_content = result_content[0].text
+            else:
+                text_content = ""
+        except Exception as e:
+            logger.error(f"[DataAnalyst] MCP File read failed: {e}")
+            state["errors"].append(f"DataAnalyst: File read failed — {str(e)}")
+            state["data_summary"] = {"file_type": ext, "error": str(e)}
+            state["analysis_insights"] = f"Failed to read document file: {str(e)}"
+            state["next_agent"] = "synthesizer"
+            state["iterations"] += 1
+            return state
+
+        if not text_content or text_content.startswith("Error"):
+            state["errors"].append(f"DataAnalyst File Reader: {text_content}")
+            state["data_summary"] = {"file_type": ext, "error": text_content}
+            state["analysis_insights"] = f"Failed to extract text from document: {text_content}"
+            state["next_agent"] = "synthesizer"
+            state["iterations"] += 1
+            return state
+
+        # Cap text at 12,000 characters to prevent prompt bloat while retaining high quality
+        max_chars = 12000
+        truncated = False
+        if len(text_content) > max_chars:
+            text_content = text_content[:max_chars] + f"\n\n... [TRUNCATED - Content exceeded {max_chars} characters] ..."
+            truncated = True
+
+        state["data_summary"] = {
+            "file_type": ext,
+            "char_count": len(text_content),
+            "is_truncated": truncated,
+            "preview": text_content[:200] + "..."
+        }
+
+        # Build analysis prompt for document
+        document_prompt = f"""Analyze the following document in context of the query: "{query}"
+
+Document Type: {ext.upper()}
+Character Count: {len(text_content)}
+
+Document Content:
+\"\"\"
+{text_content}
+\"\"\"
+
+Provide a comprehensive, high-quality document analysis containing:
+1. Detailed Summary: A summary of the document's main topics and overall thesis.
+2. Key Insights & Findings: Extract specific data points, quotes, facts, or statistics relevant to the query.
+3. Analysis & Relevance: Explain how this document helps answer the user's research query: "{query}".
+4. Quality & Context: Note the tone, target audience, credibility, and any limitations or conflicts within the text.
+
+Format your analysis clearly in markdown, referencing specific sections if available in the text. Be precise and objective."""
+
+        try:
+            insights = self.call_llm(document_prompt)
+            logger.info(f"[DataAnalyst] Document insights generated ({len(insights)} chars)")
+        except Exception as e:
+            logger.error(f"[DataAnalyst] LLM document analysis failed: {e}")
+            state["errors"].append(f"DataAnalyst LLM document error: {str(e)}")
+            insights = f"Successfully read {ext.upper()} document but LLM analysis failed: {str(e)}\n\nPreview:\n{text_content[:1000]}..."
+
+        state["analysis_insights"] = insights
+        state["next_agent"] = "synthesizer"
+        state["iterations"] += 1
+        
+        logger.info("[DataAnalyst] Document analysis complete → routing to synthesizer")
         return state
 
     # ── Private Helper Methods ────────────────────────────────────────────────

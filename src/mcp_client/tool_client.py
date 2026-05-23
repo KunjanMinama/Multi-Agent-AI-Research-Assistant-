@@ -86,3 +86,7 @@ def get_web_search_client():
 
 def get_data_analysis_client():
     return MCPToolClient("src/mcp_servers/data_analysis_server.py")
+
+def get_file_client():
+    return MCPToolClient("src/mcp_servers/file_server.py")
+
