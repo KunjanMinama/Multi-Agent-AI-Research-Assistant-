@@ -202,11 +202,78 @@ experts opinion AI replacing doctors"""
 
     def _search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """
-        Execute a web search using DuckDuckGo directly.
+        Execute a web search using Tavily, SerpAPI, or DuckDuckGo.
 
-        Uses fresh DDGS context manager per attempt and random jitter
-        to avoid rate limiting (recommended by library maintainer).
+        Checks environment variables for API keys first for production-grade reliability,
+        falling back to DuckDuckGo search if no key is configured.
         """
+        import os
+        import httpx
+
+        # 1. Try Tavily Search API if TAVILY_API_KEY is configured
+        tavily_key = os.getenv("TAVILY_API_KEY")
+        if tavily_key:
+            try:
+                logger.info(f"[Researcher] Querying Tavily API for: '{query}'")
+                resp = httpx.post(
+                    "https://api.tavily.com/search",
+                    json={
+                        "api_key": tavily_key,
+                        "query": query,
+                        "search_depth": "basic",
+                        "max_results": max_results
+                    },
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    results = resp.json().get("results", [])
+                    # Map Tavily format to standard format (title, href, body)
+                    mapped = []
+                    for r in results:
+                        mapped.append({
+                            "title": r.get("title", ""),
+                            "href": r.get("url", ""),
+                            "body": r.get("content", "")
+                        })
+                    logger.info(f"[Researcher] Tavily search succeeded with {len(mapped)} results")
+                    return mapped
+                else:
+                    logger.warning(f"[Researcher] Tavily API returned status {resp.status_code}: {resp.text}")
+            except Exception as e:
+                logger.error(f"[Researcher] Tavily search failed: {e}")
+
+        # 2. Try SerpAPI if SERPAPI_API_KEY is configured
+        serpapi_key = os.getenv("SERPAPI_API_KEY")
+        if serpapi_key:
+            try:
+                logger.info(f"[Researcher] Querying SerpAPI for: '{query}'")
+                resp = httpx.get(
+                    "https://serpapi.com/search.json",
+                    params={
+                        "q": query,
+                        "api_key": serpapi_key,
+                        "engine": "google",
+                        "num": max_results
+                    },
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    organic = resp.json().get("organic_results", [])
+                    mapped = []
+                    for r in organic:
+                        mapped.append({
+                            "title": r.get("title", ""),
+                            "href": r.get("link", ""),
+                            "body": r.get("snippet", "")
+                        })
+                    logger.info(f"[Researcher] SerpAPI search succeeded with {len(mapped)} results")
+                    return mapped
+                else:
+                    logger.warning(f"[Researcher] SerpAPI returned status {resp.status_code}: {resp.text}")
+            except Exception as e:
+                logger.error(f"[Researcher] SerpAPI search failed: {e}")
+
+        # 3. Fall back to free DuckDuckGo search
         if DDGS is None:
             logger.warning("[Researcher] duckduckgo_search not installed — skipping search")
             return []
@@ -214,18 +281,18 @@ experts opinion AI replacing doctors"""
         import time as _time
         import random
 
+        logger.info(f"[Researcher] Using DuckDuckGo Search (no API key configured)")
         for attempt in range(1, 4):  # 3 attempts
             try:
-                # Fresh context manager per attempt — rate-limited instances cache errors
                 with DDGS() as searcher:
                     results = searcher.text(query, max_results=max_results)
                     results_list = list(results) if results else []
-                logger.info(f"[Researcher] Search '{query}' → {len(results_list)} results")
+                logger.info(f"[Researcher] DDG Search '{query}' → {len(results_list)} results")
                 return results_list
             except Exception as e:
-                wait = random.uniform(5, 10) * attempt  # Random backoff: ~5-10s, ~10-20s, ~15-30s
+                wait = random.uniform(5, 10) * attempt
                 logger.warning(
-                    f"[Researcher] Search failed for '{query}' (attempt {attempt}/3): {e}"
+                    f"[Researcher] DDG Search failed (attempt {attempt}/3): {e}"
                     f" | retrying in {wait:.0f}s..."
                 )
                 if attempt < 3:
