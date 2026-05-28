@@ -15,6 +15,8 @@ FLOW:
 """
 
 from typing import Dict, Any, List
+import os
+import httpx
 
 from loguru import logger
 
@@ -23,6 +25,9 @@ try:
     from duckduckgo_search import DDGS
 except ImportError:
     DDGS = None  # type: ignore[assignment]
+
+SEARCH_VERSION = "tavily-v3"  # bump this to force cache-bust
+
 
 from .base_v2 import BaseAgent
 
@@ -207,11 +212,9 @@ experts opinion AI replacing doctors"""
         Checks environment variables for API keys first for production-grade reliability,
         falling back to DuckDuckGo search if no key is configured.
         """
-        import os
-        import httpx
-
         # 1. Try Tavily Search API if TAVILY_API_KEY is configured
         tavily_key = os.getenv("TAVILY_API_KEY")
+        logger.info(f"[Researcher] SEARCH_VERSION={SEARCH_VERSION} | Tavily key present={bool(tavily_key)}")
         if tavily_key:
             logger.info(f"[Researcher] Tavily key found, querying for: '{query}'")
             try:
