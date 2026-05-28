@@ -188,6 +188,30 @@ class BaseAgent(ABC):
                 self.error_count += 1
                 elapsed = time.time() - start_time
 
+                # Check for rate limit or 429
+                err_msg = str(e).lower()
+                is_rate_limit = "rate_limit" in err_msg or "429" in err_msg or "rate limit" in err_msg
+
+                if is_rate_limit:
+                    fallback_model = None
+                    if self.model == "llama-3.3-70b-versatile":
+                        fallback_model = "llama-3.1-8b-instant"
+
+                    if fallback_model:
+                        logger.warning(
+                            f"[{self.name}] ⚠️ Groq 429 Rate Limit hit for '{self.model}'. "
+                            f"Automatically falling back to '{fallback_model}'..."
+                        )
+                        self.model = fallback_model
+                        self.llm = self._setup_llm()
+                        time.sleep(1)
+                        # Re-instantiate LLM messages references
+                        messages = [
+                            SystemMessage(content=sys_prompt),
+                            HumanMessage(content=prompt),
+                        ]
+                        continue
+
                 if attempt < self.max_retries:
                     wait = 2 ** attempt  # Exponential backoff: 2s, 4s, 8s
                     logger.warning(
