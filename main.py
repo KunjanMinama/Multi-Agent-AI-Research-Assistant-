@@ -149,6 +149,21 @@ async def research_with_data(query: str = Form(...), file: UploadFile = File(...
 async def health():
     return {"status": "ok"}
 
+@app.get("/debug/env")
+async def debug_env():
+    """Diagnostic endpoint — shows which API keys are loaded (values masked for security)."""
+    import os
+    def mask(val):
+        if not val:
+            return "NOT SET"
+        return val[:8] + "..." + val[-4:] if len(val) > 12 else "SET"
+    return {
+        "TAVILY_API_KEY": mask(os.getenv("TAVILY_API_KEY")),
+        "GROQ_API_KEY": mask(os.getenv("GROQ_API_KEY")),
+        "SERPAPI_API_KEY": mask(os.getenv("SERPAPI_API_KEY")),
+        "python_version": __import__("sys").version,
+    }
+
 @app.get("/.well-known/agent.json")
 async def agent_json():
     from src.a2a.agent_card import get_agent_card

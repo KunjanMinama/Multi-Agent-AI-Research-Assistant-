@@ -94,9 +94,9 @@ Quality standards:
         import random
 
         for i, sq in enumerate(search_queries, 1):
-            # Add delay between queries to avoid DuckDuckGo rate limiting
+            # Add small delay between queries (less needed with Tavily API)
             if i > 1:
-                _time.sleep(4)
+                _time.sleep(1)
 
             logger.info(f"[Researcher] Searching ({i}/{len(search_queries)}): '{sq}'")
             results = self._search(sq, max_results=5)
@@ -213,18 +213,20 @@ experts opinion AI replacing doctors"""
         # 1. Try Tavily Search API if TAVILY_API_KEY is configured
         tavily_key = os.getenv("TAVILY_API_KEY")
         if tavily_key:
+            logger.info(f"[Researcher] Tavily key found, querying for: '{query}'")
             try:
-                logger.info(f"[Researcher] Querying Tavily API for: '{query}'")
+                # Use Authorization header (Tavily v2 format)
                 resp = httpx.post(
                     "https://api.tavily.com/search",
+                    headers={"Authorization": f"Bearer {tavily_key}"},
                     json={
-                        "api_key": tavily_key,
                         "query": query,
                         "search_depth": "basic",
                         "max_results": max_results
                     },
-                    timeout=10
+                    timeout=15
                 )
+                logger.info(f"[Researcher] Tavily HTTP status: {resp.status_code}")
                 if resp.status_code == 200:
                     results = resp.json().get("results", [])
                     # Map Tavily format to standard format (title, href, body)
@@ -238,9 +240,9 @@ experts opinion AI replacing doctors"""
                     logger.info(f"[Researcher] Tavily search succeeded with {len(mapped)} results")
                     return mapped
                 else:
-                    logger.warning(f"[Researcher] Tavily API returned status {resp.status_code}: {resp.text}")
+                    logger.warning(f"[Researcher] Tavily failed ({resp.status_code}): {resp.text[:300]}")
             except Exception as e:
-                logger.error(f"[Researcher] Tavily search failed: {e}")
+                logger.error(f"[Researcher] Tavily exception: {type(e).__name__}: {e}")
 
         # 2. Try SerpAPI if SERPAPI_API_KEY is configured
         serpapi_key = os.getenv("SERPAPI_API_KEY")
