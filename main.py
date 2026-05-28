@@ -164,6 +164,30 @@ async def debug_env():
         "python_version": __import__("sys").version,
     }
 
+@app.get("/debug/search")
+async def debug_search():
+    """Run a live Tavily search and return raw result for debugging."""
+    import os, httpx
+    key = os.getenv("TAVILY_API_KEY")
+    if not key:
+        return {"error": "TAVILY_API_KEY not set"}
+    try:
+        resp = httpx.post(
+            "https://api.tavily.com/search",
+            headers={"Authorization": f"Bearer {key}"},
+            json={"query": "AI news May 2026", "search_depth": "basic", "max_results": 2},
+            timeout=15
+        )
+        return {
+            "status_code": resp.status_code,
+            "key_prefix": key[:12],
+            "result_count": len(resp.json().get("results", [])) if resp.status_code == 200 else 0,
+            "first_title": resp.json().get("results", [{}])[0].get("title") if resp.status_code == 200 and resp.json().get("results") else None,
+            "error_body": resp.text[:500] if resp.status_code != 200 else None
+        }
+    except Exception as e:
+        return {"error": type(e).__name__, "detail": str(e)}
+
 @app.get("/.well-known/agent.json")
 async def agent_json():
     from src.a2a.agent_card import get_agent_card
