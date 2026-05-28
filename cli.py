@@ -31,7 +31,7 @@ from loguru import logger
 from dotenv import load_dotenv
 
 # Load environment before anything else
-load_dotenv()
+load_dotenv(override=True)
 
 # Add project root to path for proper imports
 sys.path.insert(0, str(Path(__file__).parent))

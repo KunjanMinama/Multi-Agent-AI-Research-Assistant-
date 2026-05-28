@@ -24,9 +24,7 @@ from typing import Dict, Any, Optional
 
 from loguru import logger
 from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 
 class BaseAgent(ABC):

@@ -56,7 +56,7 @@ class BaseAgent(ABC):
     def _setup_llm(self):
         from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(override=True)
 
         llm = HuggingFaceEndpoint(
         repo_id="meta-llama/Llama-3.1-8B-Instruct",

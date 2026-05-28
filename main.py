@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
-load_dotenv() # Load env vars for LangSmith Observability
+load_dotenv(override=True) # Load env vars for LangSmith Observability
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, Form, File
 from fastapi.middleware.cors import CORSMiddleware
