@@ -29,12 +29,11 @@ export function FileUpload({ onFileSelect, disabled }: FileUploadProps) {
     setError(null);
     const maxSize = 10 * 1024 * 1024; // 10MB
 
-    // Basic MIME type check or file extension check fallback
-    const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
-    const isXlsx = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.name.endsWith('.xlsx');
+    const allowedExtensions = ['.csv', '.xlsx', '.pdf', '.docx', '.json', '.txt', '.md'];
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
 
-    if (!isCsv && !isXlsx) {
-      setError('Invalid file type. Only CSV and XLSX allowed.');
+    if (!allowedExtensions.includes(fileExtension)) {
+      setError('Invalid file type. Allowed formats: CSV, XLSX, PDF, Word (DOCX), JSON, TXT, MD.');
       return false;
     }
     if (file.size > maxSize) {
@@ -84,15 +83,15 @@ export function FileUpload({ onFileSelect, disabled }: FileUploadProps) {
           <div className="space-y-2">
             <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="text-lg font-medium text-foreground">
-              Drop CSV or Excel file here
+              Drop spreadsheet or document here
             </p>
             <p className="text-sm text-muted-foreground">
-              or click to browse
+              CSV, Excel, PDF, Word, JSON, TXT, or MD (max 10MB)
             </p>
             <input
               id="file-upload-input"
               type="file"
-              accept=".csv,.xlsx"
+              accept=".csv,.xlsx,.pdf,.docx,.json,.txt,.md"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file && validateFile(file)) {
