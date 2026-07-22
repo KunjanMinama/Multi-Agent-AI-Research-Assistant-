@@ -8,7 +8,7 @@ from typing import Dict, Any
 from loguru import logger
 
 from .base_v2 import BaseAgent
-
+import os
 class FactCheckerAgent(BaseAgent):
     """
     Acts as a strict QA reviewer.
@@ -18,7 +18,7 @@ class FactCheckerAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="FactChecker",
-            model="llama-3.3-70b-versatile",
+            model=os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
             temperature=0.1,  # Very low temperature for strict QA
         )
 

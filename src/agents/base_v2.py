@@ -53,7 +53,7 @@ class BaseAgent(ABC):
     def __init__(
         self,
         name: str,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
         temperature: float = 0.7,
         max_retries: int = 3,
     ):
@@ -95,7 +95,16 @@ class BaseAgent(ABC):
         Returns:
             Configured ChatGroq instance
         """
-        from langchain_groq import ChatGroq
+        # pyrefly: ignore [missing-import]
+        from langchain_ollama import ChatOllama
+
+        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://bizagent.bizrtc.com:11434")
+
+        return ChatOllama(
+            model=self.model,
+            temperature=self.temperature,
+            base_url=ollama_url,
+        )
 
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:

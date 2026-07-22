@@ -35,7 +35,7 @@ class WriterAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="Writer",
-            model="llama-3.3-70b-versatile",
+            model=os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
             temperature=0.5,  # Balanced: structured yet readable
         )
 

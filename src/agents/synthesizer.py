@@ -16,7 +16,7 @@ FLOW:
 
 from typing import Dict, Any
 from loguru import logger
-
+import os
 from .base_v2 import BaseAgent
 
 
@@ -36,7 +36,7 @@ class SynthesizerAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="Synthesizer",
-            model="llama-3.3-70b-versatile",
+            model=os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
             temperature=0.6,  # Moderate creativity for synthesis
         )
 

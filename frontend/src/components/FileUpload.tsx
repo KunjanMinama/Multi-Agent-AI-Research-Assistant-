@@ -17,7 +17,7 @@ export function FileUpload({ onFileSelect, disabled }: FileUploadProps) {
     e.preventDefault();
     setDragActive(false);
     if (disabled) return;
-    
+
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && validateFile(droppedFile)) {
       setFile(droppedFile);
