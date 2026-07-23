@@ -296,6 +296,7 @@ class BaseAgent:
 2. LLM decides: `task_type = research | analysis | combined`
 3. Sets `state["next_agent"]` accordingly (`researcher` or `data_analyst`)
 4. Writes the plan to `state["plan"]`
+5. Used llama3.2:3b model on server side for instant reply
 
 **Key Design**: The Planner uses a very low temperature (`0.3`) because routing decisions must be deterministic. If you ask it to analyze a CSV file, you always want `next_agent = data_analyst`, not something random.
 
