@@ -17,7 +17,7 @@
 10. [End-to-End Request Trace (What Happens Step by Step)](#10-end-to-end-request-trace)
 11. [Testing Strategy](#11-testing-strategy)
 12. [How to Run the Project (All 3 Modes)](#12-how-to-run-the-project)
-13. [Common Interview Questions & Answers](#13-common-interview-questions--answers)
+13. [Common Questions & Answers](#13-common-interview-questions--answers)
 
 ---
 
