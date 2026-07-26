@@ -832,7 +832,7 @@ async for chunk in workflow.stream("AI healthcare trends"):
 
 ---
 
-## 13. Common Interview Questions & Answers
+## 13. Common Questions & Answers for this Project
 
 **Q: What is a Multi-Agent System?**
 > A: Instead of one AI trying to answer everything, multiple specialized agents work as a team. Each agent focuses on one task (research, data analysis, QA) and passes results through a shared state. This makes the system more reliable, easier to debug, and more scalable.
